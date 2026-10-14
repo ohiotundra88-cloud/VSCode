@@ -1,0 +1,137 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  vendorActivitySchema,
+  vendorFileSchema,
+  vendorIdSchema,
+  vendorRiderSlotsInputSchema,
+  vendorInputSchema,
+  type VendorAccess,
+  type VendorAuditRow,
+  type VendorDetail,
+  type VendorListRow,
+} from "@/lib/vendors.shared";
+import type { VendorCaptainRow } from "@/lib/vendors.server";
+
+export type { VendorCaptainRow };
+
+export const getVendorAccess = createServerFn({ method: "GET" }).handler(
+  async (): Promise<VendorAccess> => {
+    const { optionalAuthContext } = await import("@/server/auth-context");
+    const { vendorAccessFor } = await import("@/lib/vendors.server");
+    return vendorAccessFor(await optionalAuthContext());
+  },
+);
+
+export const listVendorRecords = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ archived: z.boolean().default(false) }).parse(d))
+  .handler(async ({ data, context }): Promise<VendorListRow[]> => {
+    const { listVendors } = await import("@/lib/vendors.server");
+    return listVendors(context, data.archived);
+  });
+
+export const getVendorRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorIdSchema.parse(d))
+  .handler(async ({ data, context }): Promise<VendorDetail> => {
+    const { getVendor } = await import("@/lib/vendors.server");
+    return getVendor(context, data.id);
+  });
+
+export const saveVendorRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorInputSchema.parse(d))
+  .handler(async ({ data, context }): Promise<{ id: string; duplicates?: string[] }> => {
+    const { saveVendor } = await import("@/lib/vendors.server");
+    return saveVendor(context, data);
+  });
+
+/** Sponsored rider slots for one vendor and year (Pinnacle Partner / One Goal). */
+export const saveVendorRiderSlots = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorRiderSlotsInputSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { saveRiderSlots } = await import("@/lib/vendors.server");
+    return saveRiderSlots(context, data);
+  });
+
+export const archiveVendorRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ id: z.string().uuid(), archived: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { setArchived } = await import("@/lib/vendors.server");
+    return setArchived(context, data.id, data.archived);
+  });
+
+export const deleteVendorRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { purgeVendor } = await import("@/lib/vendors.server");
+    return purgeVendor(context, data.id);
+  });
+
+export const logVendorActivity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorActivitySchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { addActivity } = await import("@/lib/vendors.server");
+    return addActivity(context, data);
+  });
+
+export const listVendorAudit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorIdSchema.parse(d))
+  .handler(async ({ data, context }): Promise<VendorAuditRow[]> => {
+    const { listAudit } = await import("@/lib/vendors.server");
+    return listAudit(context, data.id);
+  });
+
+export const uploadVendorAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorFileSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { uploadAttachment } = await import("@/lib/vendors.server");
+    return uploadAttachment(context, data);
+  });
+
+export const archiveVendorAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ id: z.string().uuid(), archived: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { setAttachmentArchived } = await import("@/lib/vendors.server");
+    return setAttachmentArchived(context, data.id, data.archived);
+  });
+
+export const deleteVendorAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { purgeAttachment } = await import("@/lib/vendors.server");
+    return purgeAttachment(context, data.id);
+  });
+
+export const getVendorAttachment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => vendorIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { readAttachment } = await import("@/lib/vendors.server");
+    return readAttachment(context, data.id);
+  });
+
+export const listVendorCaptainAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<VendorCaptainRow[]> => {
+    const { listVendorCaptains } = await import("@/lib/vendors.server");
+    return listVendorCaptains(context);
+  });
+
+export const setVendorDashboardAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ user_id: z.string().uuid(), value: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { setVendorAccessFlag } = await import("@/lib/vendors.server");
+    return setVendorAccessFlag(context, data.user_id, data.value);
+  });

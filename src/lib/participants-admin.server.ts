@@ -1,0 +1,19 @@
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { AuthContext } from "@/integrations/supabase/auth-middleware";
+
+export { supabaseAdmin };
+
+/** Admins and super users may manage colleague records. */
+export async function assertManager(context: AuthContext): Promise<string> {
+  const [{ data: isAdmin }, { data: isSuper }] = await Promise.all([
+    context.supabase.rpc("is_admin_text", { _user_id: context.userId }),
+    context.supabase.rpc("is_superuser", { _user_id: context.userId }),
+  ]);
+  if (!isAdmin && !isSuper) throw new Error("Forbidden — admin or super user access required.");
+  return context.claims?.email ?? "admin";
+}
+
+export function appendAudit(current: unknown, what: string) {
+  const list = Array.isArray(current) ? current : [];
+  return [...list, { at: new Date().toISOString(), what }];
+}

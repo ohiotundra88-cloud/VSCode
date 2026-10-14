@@ -1,0 +1,174 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  Outlet,
+  Link,
+  createRootRouteWithContext,
+  useRouter,
+  HeadContent,
+  Scripts,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
+import type { ReactNode } from "react";
+
+import appCss from "../styles.css?url";
+import { StoreProvider } from "@/components/StoreProvider";
+import { AdminStoreProvider } from "@/components/AdminStoreProvider";
+import { AppNav } from "@/components/AppNav";
+import { SuperUserBar } from "@/components/AdminShell";
+import { Toaster } from "@/components/ui/sonner";
+import { ConciergeLauncher } from "@/components/Concierge";
+import { NetworkNotice } from "@/components/NetworkNotice";
+import { AuthGate } from "@/components/AuthGate";
+
+function NotFoundComponent() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <div className="mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Go home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
+  console.error(error);
+  const router = useRouter();
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          This page didn't load
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Something went wrong on our end. You can try refreshing or head back home.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Try again
+          </button>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Go home
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Team Huntington Hub — Your Pelotonia Journey" },
+      {
+        name: "description",
+        content:
+          "One guided digital front door for Huntington colleagues participating in Pelotonia — registration, travel, bike, apparel, and support.",
+      },
+      { name: "author", content: "Team Huntington" },
+      { property: "og:title", content: "Team Huntington Hub" },
+      {
+        property: "og:description",
+        content: "Your Team Huntington Pelotonia journey starts here.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+    ],
+  }),
+  shellComponent: RootShell,
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
+});
+
+function RootShell({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StoreProvider>
+        <AdminStoreProvider>
+          <div className="min-h-screen flex flex-col">
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring"
+            >
+              Skip to main content
+            </a>
+            <AppNav />
+            <NetworkNotice />
+            <SuperUserBar />
+
+            <main id="main-content" tabIndex={-1} className="flex-1 relative focus:outline-none">
+              <AuthGate>
+                <Outlet />
+              </AuthGate>
+            </main>
+            <footer className="border-t bg-[var(--brand-dark)] text-white/70 py-6 text-xs">
+              <div className="mx-auto max-w-7xl px-4 flex flex-wrap gap-4 justify-between">
+                <span>
+                  © {new Date().getFullYear()} Team Huntington Hub · Internal colleague resource
+                </span>
+                <span className="flex gap-4">
+                  <Link
+                    to="/health"
+                    className="hover:text-white underline-offset-2 hover:underline"
+                  >
+                    Network check
+                  </Link>
+                  <span>Not affiliated with copyrighted Pelotonia branding.</span>
+                </span>
+              </div>
+            </footer>
+          </div>
+          <ConciergeLauncher />
+          <Toaster />
+        </AdminStoreProvider>
+      </StoreProvider>
+    </QueryClientProvider>
+  );
+}
