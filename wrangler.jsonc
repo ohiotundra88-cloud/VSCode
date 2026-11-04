@@ -4,38 +4,31 @@
 // committed; see docs/CONFIGURATION.md for the full list.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ride-with-huntington",
+  "name": "vscode",
   "main": ".output/server/index.mjs",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": ".output/public", "binding": "ASSETS" },
   "observability": { "enabled": true },
-  // www is the public address; the bare domain and the old preview host
-  // redirect there (src/server.ts).
-  "routes": [
-    { "pattern": "www.ridewithhuntington.com", "custom_domain": true },
-    { "pattern": "ridewithhuntington.com", "custom_domain": true },
-    { "pattern": "ridewithhuntington.madebyotten.com", "custom_domain": true },
-  ],
-  "workers_dev": false,
-  "preview_urls": false,
+  // Temporary migration preview. The production domain is not in this account yet.
+  "workers_dev": true,
+  "preview_urls": true,
   "vars": {
-    "PUBLIC_ORIGIN": "https://www.ridewithhuntington.com",
-    "AUTH_BASE_URL": "https://auth.madebyaspire.com",
-    "AUTH_CLIENT_ID": "team-huntington-hub",
-    "AUTH_ORG_SLUG": "team-huntington",
+    "PUBLIC_ORIGIN": "https://vscode.ohiotundra88.workers.dev",
+    "AUTH_MODE": "disabled",
     "HUB_DB_URL": "https://rwh-db.madebyotten.com",
     "EMAIL_PROVIDER": "resend",
     "EMAIL_FROM": "Team Huntington Hub <hub@send.madebyaspire.com>",
-    "HUB_REQUIRE_SIGN_IN": "true",
+    "HUB_REQUIRE_SIGN_IN": "false",
   },
   "d1_databases": [
     {
       "binding": "HUB_SESSIONS",
       "database_name": "ride-with-huntington-sessions",
-      "database_id": "f3ebe3a1-1839-41de-98a4-e4347ae4301b",
+      "database_id": "3b29d26d-da7c-4a7f-8d2c-1dd5c2943781",
       "migrations_dir": "deploy/cloudflare/d1-migrations",
     },
   ],
-  "r2_buckets": [{ "binding": "HUB_FILES", "bucket_name": "ride-with-huntington-files" }],
+  // R2 is not enabled in this Cloudflare account yet. Add HUB_FILES after
+  // enabling R2 and creating ride-with-huntington-files.
 }

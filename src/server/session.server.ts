@@ -15,6 +15,11 @@ import {
 import { binding, setting } from "./runtime";
 import { createDbClient } from "./backend.server";
 import { recoverSignIn } from "./sign-in-recovery";
+import {
+  disabledAuthRedirect,
+  isAuthenticationEnabled,
+  shouldReadAuthenticationSession,
+} from "../lib/auth-mode.shared";
 
 export interface HubUser {
   /** Hub user id (auth.users.id) used throughout the database. */
@@ -27,6 +32,10 @@ export interface HubUser {
 
 type PortalAuth = ReturnType<typeof createPortalAuth>;
 let cached: { key: string; auth: PortalAuth } | undefined;
+
+export function authenticationEnabled(): boolean {
+  return isAuthenticationEnabled(setting("AUTH_MODE", { optional: true }));
+}
 
 function portalAuth(): PortalAuth {
   const cfg = {
@@ -49,10 +58,14 @@ function portalAuth(): PortalAuth {
   return cached.auth;
 }
 
-export const signIn = (request: Request) => portalAuth().login(request);
+export const signIn = (request: Request) =>
+  authenticationEnabled() ? portalAuth().login(request) : disabledAuthRedirect(request);
 export const completeSignIn = async (request: Request) =>
-  recoverSignIn(request, await portalAuth().callback(request));
-export const signOut = (request: Request) => portalAuth().logout(request);
+  authenticationEnabled()
+    ? recoverSignIn(request, await portalAuth().callback(request))
+    : disabledAuthRedirect(request);
+export const signOut = (request: Request) =>
+  authenticationEnabled() ? portalAuth().logout(request) : disabledAuthRedirect(request);
 
 // Provider subject -> Hub user id, remembered for the life of the isolate.
 const userIds = new Map<string, { id: string; at: number }>();
@@ -83,7 +96,8 @@ async function hubUserId(session: PortalSession): Promise<string> {
 /** The signed-in person for this request, or null. */
 export async function currentUser(request: Request): Promise<HubUser | null> {
   const cookie = request.headers.get("cookie") ?? "";
-  if (!cookie.includes("hub_session")) return null;
+  if (!shouldReadAuthenticationSession(setting("AUTH_MODE", { optional: true }), cookie))
+    return null;
   const session = await portalAuth().getSession(request);
   if (!session) return null;
   return {
